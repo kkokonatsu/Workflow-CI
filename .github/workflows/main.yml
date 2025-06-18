@@ -1,4 +1,4 @@
-# .github/workflows/main.yml (VERSI TERBARU DENGAN DAGSHUB.INIT())
+# .github/workflows/main.yml
 name: Train and Deploy MLflow Model
 
 on:
@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'MLProject/**'
+      - 'MLproject/**'
   workflow_dispatch:
 
 permissions:
@@ -30,15 +30,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12.7'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r MLProject/requirements.txt # Pastikan dagshub ada di sini
+          pip install -r MLproject/requirements.txt
 
       - name: Run MLflow Project
-        working-directory: ./MLProject
+        working-directory: ./MLproject
         run: |
           # Perintah 'mlflow run' akan memicu skrip Python,
           # dan dagshub.init() di dalam skrip akan mengurus konfigurasi MLflow tracking.
@@ -48,12 +48,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-runs-local-copy
-          path: MLProject/mlruns/
+          path: MLproject/mlruns/
           retention-days: 7
 
       - name: Get latest RUN_ID
         id: get_run_id
-        working-directory: MLProject
+        working-directory: MLproject
         run: |
           RUN_ID=$(ls -Art mlruns/0/runs/ | tail -n 1)
           echo "Latest RUN_ID: $RUN_ID"
@@ -62,7 +62,7 @@ jobs:
       - name: Copy model artifact for Git/Docker
         run: |
           mkdir -p artifact_model_storage_Terbaru_dari_github_actions
-          cp -r MLProject/mlruns/0/runs/${{ steps.get_run_id.outputs.RUN_ID }}/artifacts/logistic_regression_model/* artifact_model_storage_Terbaru_dari_github_actions/
+          cp -r MLproject/mlruns/0/runs/${{ steps.get_run_id.outputs.RUN_ID }}/artifacts/logistic_regression_model/* artifact_model_storage_Terbaru_dari_github_actions/
 
       - name: Commit and Push model artifact to Git
         run: |
