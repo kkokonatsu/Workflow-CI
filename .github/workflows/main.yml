@@ -46,6 +46,7 @@ jobs:
       - name: Run MLflow Project
         working-directory: ./MLproject
         run: |
+          export MLFLOW_ARTIFACT_URI=file://$(pwd)/mlruns 
           mlflow run . -e train_lr_model \
           -P train_x="personality_preprocessing/X_train_personality_processing.csv" \
           -P test_x="personality_preprocessing/X_test_personality_processing.csv" \

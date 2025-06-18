@@ -10,9 +10,7 @@ import os
 import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
-import dagshub
 
-dagshub.init(repo_owner='kkokonatsu', repo_name='Workflow-CI', mlflow=True)
 
 LE_CLASSES = ['Extrovert', 'Introvert'] 
 
