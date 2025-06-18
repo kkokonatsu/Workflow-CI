@@ -30,33 +30,42 @@ jobs:
         with:
           python-version: '3.12.7'
 
-      - name: Install Conda and MLflow CLI (if not pre-installed)
+      - name: Install Miniconda and Setup Environment
         run: |
+          # Download dan instal Miniconda
           wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
           bash miniconda.sh -b -p $HOME/miniconda
 
           echo "$HOME/miniconda/bin" >> $GITHUB_PATH
 
           source $HOME/miniconda/bin/activate
-          conda init bash 
+          conda init bash
 
-          pip install mlflow
+          eval "$(conda shell.bash hook)"
+
+          cd MLproject 
+          conda env create -f conda.yaml
+
           conda --version
+          conda env list
 
-      - name: Run MLflow Project
+          cd ..
+
+      - name: Run MLflow Project (Direct Python Execution)
         working-directory: ./MLproject
         run: |
-          export MLFLOW_ARTIFACT_URI=file://$(pwd)/mlruns 
-          mlflow run . -e train_lr_model \
-          -P train_x="personality_preprocessing/X_train_personality_processing.csv" \
-          -P test_x="personality_preprocessing/X_test_personality_processing.csv" \
-          -P train_y="personality_preprocessing/y_train.csv" \
-          -P test_y="personality_preprocessing/y_test.csv" \
-          -P lr_c=0.1 -P lr_penalty=l2 \
-          --run-name "CI_Automated_LR_Deploy" \
-          --env-manager=conda
+          source $HOME/miniconda/bin/activate personality-model-env # Nama env dari conda.yaml
 
-      - name: Upload MLflow Runs as Artifact
+          export MLFLOW_TRACKING_URI=file://$(pwd)/mlruns 
+
+          python modelling.py \
+          --train_x personality_preprocessing/X_train_personality_processing.csv \
+          --test_x personality_preprocessing/X_test_personality_processing.csv \
+          --train_y personality_preprocessing/y_train.csv \
+          --test_y personality_preprocessing/y_test.csv \
+          --lr_c 0.1 --lr_penalty l2 --random_state 42
+
+      - name: Upload MLflow Runs as Artifact (Local Copy)
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-runs-local-copy
@@ -67,7 +76,9 @@ jobs:
         id: get_run_id
         working-directory: MLproject
         run: |
-          RUN_ID=$(ls -Art mlruns/0/runs/ | tail -n 1)
+          # Dapatkan RUN_ID dari folder mlruns/0/runs/ lokal
+          # Ini akan bekerja karena mlruns/ lokal sekarang dijamin terisi
+          RUN_ID=$(ls -Art mlruns/0/runs/ | tail -n 1) 
           echo "Latest RUN_ID: $RUN_ID"
           echo "RUN_ID=$RUN_ID" >> $GITHUB_OUTPUT
 
@@ -99,7 +110,8 @@ jobs:
           IMAGE_NAME="${{ secrets.USERNAME }}/personality-classifier-model:latest"
 
           echo "Building Docker image from MLflow model..."
-          mlflow models build-docker -m artifact_model_storage_Terbaru_dari_github_actions/ -n $IMAGE_NAME
+          # Path ini menunjuk ke lokasi model yang disalin dari mlruns lokal
+          mlflow models build-docker -m artifact_model_storage_Terbaru_dari_github_actions/logistic_regression_model/ -n $IMAGE_NAME 
 
           echo "Pushing image to Docker Hub..."
           docker push $IMAGE_NAME
