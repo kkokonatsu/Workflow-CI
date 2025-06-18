@@ -54,7 +54,7 @@ jobs:
       - name: Run MLflow Project (Direct Python Execution)
         working-directory: ./MLproject
         run: |
-          source $HOME/miniconda/bin/activate personality-model-env # Nama env dari conda.yaml
+          source $HOME/miniconda/bin/activate mlflow-env 
 
           export MLFLOW_TRACKING_URI=file://$(pwd)/mlruns 
 
