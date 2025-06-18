@@ -5,14 +5,14 @@ on:
     branches:
       - main
     paths:
-      - 'MLProject/**'
+      - 'MLproject/**'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./MLProject
+        working-directory: ./MLproject
 
     steps:
       - name: 1. Checkout Repository
@@ -28,7 +28,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: 3.12.7
-          environment-file: MLProject/conda.yaml
+          environment-file: MLproject/conda.yaml
           activate-environment: personality_project_env
 
       - name: 4. Install MLflow
@@ -61,5 +61,5 @@ jobs:
         with:
           name: mlflow-artifacts-${{ github.run_id }}
           path: |
-            MLProject/mlruns
-            MLProject/run_id.txt
+            MLproject/mlruns
+            MLproject/run_id.txt
