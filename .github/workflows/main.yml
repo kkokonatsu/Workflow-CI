@@ -31,10 +31,18 @@ jobs:
         with:
           python-version: '3.12.7'
 
-      - name: Install MLflow CLI (only MLflow is needed in the base environment)
+      - name: Install Conda and MLflow CLI (if not pre-installed)
         run: |
-          python -m pip install --upgrade pip
-          pip install mlflow # Ini hanya menginstal CLI MLflow di base environment runner
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+
+          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+
+          source $HOME/miniconda/bin/activate
+          conda init bash 
+
+          pip install mlflow
+          conda --version
 
       - name: Run MLflow Project
         working-directory: ./MLproject
@@ -46,7 +54,7 @@ jobs:
           -P test_y="personality_preprocessing/y_test.csv" \
           -P lr_c=0.1 -P lr_penalty=l2 \
           --run-name "CI_Automated_LR_Deploy" \
-          --env-manager=conda # Ini adalah kunci!
+          --env-manager=conda
 
       - name: Upload MLflow Runs as Artifact
         uses: actions/upload-artifact@v4
