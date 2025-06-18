@@ -34,7 +34,7 @@ jobs:
 
       - name: 4. Install MLflow
         shell: bash -l {0}
-        run: pip install mlflow=2.19.0
+        run: pip install mlflow==2.19.0
 
       - name: 5. Run MLflow Project (Train Model)
         shell: bash -l {0}
