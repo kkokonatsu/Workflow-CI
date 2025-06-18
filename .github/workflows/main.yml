@@ -49,13 +49,18 @@ jobs:
       - name: 7. Build and Push Docker Image with MLflow
         shell: bash -l {0}
         run: |
-          RUN_ID=$(cat run_id.txt)
-          echo "Using MLflow Run ID: $RUN_ID"
+          IMAGE_NAME="bimoadebudimanfikri/personality-classifier"
 
+          RUN_ID=$(cat run_id.txt)
+          echo "Using MLflow Run ID: $RUN_ID to build image: $IMAGE_NAME"
+
+          echo "Building Docker image..."
           mlflow models build-docker \
             --model-uri "runs:/${RUN_ID}/logistic_regression_model" \
-            --name "bimoadebudimanfikri/personality-classifier" \
-            --push
+            --name "$IMAGE_NAME"
+
+          echo "Pushing image to Docker Hub..."
+          docker push "$IMAGE_NAME"
 
       - name: 8. Upload MLflow Artifacts
         uses: actions/upload-artifact@v4
