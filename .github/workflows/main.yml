@@ -1,4 +1,3 @@
-# .github/workflows/main.yml
 name: Train and Deploy MLflow Model
 
 on:
@@ -18,7 +17,6 @@ jobs:
 
     env:
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -32,18 +30,18 @@ jobs:
         with:
           python-version: '3.12.7'
 
-      - name: Install dependencies
+      - name: Install MLflow CLI (if not in base env)
         run: |
           python -m pip install --upgrade pip
-          pip install -r MLproject/requirements.txt
+          pip install mlflow # Hanya perlu menginstal CLI MLflow di base environment
 
       - name: Run MLflow Project
         working-directory: ./MLproject
         run: |
-          # Perintah 'mlflow run' akan memicu skrip Python,
-          # dan dagshub.init() di dalam skrip akan mengurus konfigurasi MLflow tracking.
-          mlflow run . -e train_lr_model -P data_path="personality_preprocessing/namadataset_processed_full.csv" -P lr_c=0.1 -P lr_penalty=l2 --run-name "CI_Automated_LR_Deploy"
+          # MLflow akan membaca conda.yaml dan membangun/menggunakan lingkungan yang benar
+          mlflow run . -e train_lr_model -P data_path="personality_preprocessing/namadataset_processed_full.csv" -P lr_c=0.1 -P lr_penalty=l2 --run-name "CI_Automated_LR_Deploy" --env-manager=conda
 
+      # --- Langkah-langkah selanjutnya tetap sama ---
       - name: Upload MLflow Runs as Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -85,9 +83,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME="${{ secrets.USERNAME }}/personality-classifier-model:latest"
-
           echo "Building Docker image from MLflow model..."
           mlflow models build-docker -m artifact_model_storage_Terbaru_dari_github_actions/ -n $IMAGE_NAME
-
           echo "Pushing image to Docker Hub..."
           docker push $IMAGE_NAME
