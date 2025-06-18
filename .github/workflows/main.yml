@@ -1,117 +1,65 @@
-# .github/workflows/main.yml
-name: Train and Deploy MLflow Model
+name: ML Model CI and Docker Build
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'MLproject/**'
-  workflow_dispatch:
-
-permissions:
-  contents: write
+      - 'MLProject/**'
 
 jobs:
-  train-model:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
-    env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    defaults:
+      run:
+        working-directory: ./MLProject
 
     steps:
-      - name: Checkout Repository
+      - name: 1. Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: 2. Set up Python 3.12.7
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.12.7'
+          python-version: 3.12.7
 
-      - name: Install Miniconda and Setup Environment
-        run: |
-          # Download dan instal Miniconda
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-          bash miniconda.sh -b -p $HOME/miniconda
-
-          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
-
-          source $HOME/miniconda/bin/activate
-          conda init bash
-
-          eval "$(conda shell.bash hook)"
-
-          cd MLproject 
-          conda env create -f conda.yaml
-
-          conda --version
-          conda env list
-
-          cd ..
-
-      - name: Run MLflow Project (Direct Python Execution)
-        working-directory: ./MLproject
-        run: |
-          source $HOME/miniconda/bin/activate mlflow-env 
-
-          export MLFLOW_TRACKING_URI=file://$(pwd)/mlruns 
-
-          python modelling.py \
-          --train_x personality_preprocessing/X_train_personality_processing.csv \
-          --test_x personality_preprocessing/X_test_personality_processing.csv \
-          --train_y personality_preprocessing/y_train.csv \
-          --test_y personality_preprocessing/y_test.csv \
-          --lr_c 0.1 --lr_penalty l2 --random_state 42
-
-      - name: Upload MLflow Runs as Artifact (Local Copy)
-        uses: actions/upload-artifact@v4
+      - name: 3. Install Conda and Dependencies
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          name: mlflow-runs-local-copy
-          path: MLproject/mlruns/
-          retention-days: 7
+          auto-update-conda: true
+          python-version: 3.12.7
+          environment-file: MLProject/conda.yaml
+          activate-environment: personality_project_env
 
-      - name: Get latest RUN_ID
-        id: get_run_id
-        working-directory: MLproject
-        run: |
-          # Dapatkan RUN_ID dari folder mlruns/0/runs/ lokal
-          # Ini akan bekerja karena mlruns/ lokal sekarang dijamin terisi
-          RUN_ID=$(ls -Art mlruns/0/runs/ | tail -n 1) 
-          echo "Latest RUN_ID: $RUN_ID"
-          echo "RUN_ID=$RUN_ID" >> $GITHUB_OUTPUT
+      - name: 4. Install MLflow
+        shell: bash -l {0}
+        run: pip install mlflow=2.19.0
 
-      - name: Copy model artifact for Git/Docker
-        run: |
-          mkdir -p artifact_model_storage_Terbaru_dari_github_actions
-          cp -r MLproject/mlruns/0/runs/${{ steps.get_run_id.outputs.RUN_ID }}/artifacts/logistic_regression_model/* artifact_model_storage_Terbaru_dari_github_actions/
+      - name: 5. Run MLflow Project (Train Model)
+        shell: bash -l {0}
+        run: mlflow run . --experiment-name "CI-CD-Personality-Prediction"
 
-      - name: Commit and Push model artifact to Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add artifact_model_storage_Terbaru_dari_github_actions/
-          git commit -m "Automated: Add latest trained model artifact from run ${{ steps.get_run_id.outputs.RUN_ID }}" || echo "Nothing to commit"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git push origin HEAD:${{ github.ref_name }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
+      - name: 6. Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: 7. Build and Push Docker Image with MLflow
+        shell: bash -l {0}
         run: |
-          IMAGE_NAME="${{ secrets.USERNAME }}/personality-classifier-model:latest"
+          RUN_ID=$(cat run_id.txt)
+          echo "Using MLflow Run ID: $RUN_ID"
 
-          echo "Building Docker image from MLflow model..."
-          # Path ini menunjuk ke lokasi model yang disalin dari mlruns lokal
-          mlflow models build-docker -m artifact_model_storage_Terbaru_dari_github_actions/logistic_regression_model/ -n $IMAGE_NAME 
+          mlflow models build-docker \
+            --model-uri "runs:/${RUN_ID}/logistic_regression_model" \
+            --name "bimoadebudimanfikri/personality-classifier" \
+            --push
 
-          echo "Pushing image to Docker Hub..."
-          docker push $IMAGE_NAME
+      - name: 8. Upload MLflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-artifacts-${{ github.run_id }}
+          path: |
+            MLProject/mlruns
+            MLProject/run_id.txt

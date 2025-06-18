@@ -16,6 +16,12 @@ LE_CLASSES = ['Extrovert', 'Introvert']
 
 def run_modelling(train_x_path, test_x_path, train_y_path, test_y_path, lr_c, lr_penalty, random_state):
     with mlflow.start_run(run_name=f"CI_Automated_LR_Deploy_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S')}"):
+        
+        run_id = mlflow.active_run().info.run_id
+        print(f"MLflow Run ID: {run_id}")
+        with open("run_id.txt", "w") as f:
+            f.write(run_id)
+            
         mlflow.set_experiment("Automated_MLflow_Project_Run")
         mlflow.sklearn.autolog(log_model_signatures=True, log_input_examples=True)
         print("MLflow Autolog for Scikit-learn diaktifkan.\n")
