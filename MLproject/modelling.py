@@ -71,7 +71,6 @@ def run_modelling(train_x_path, test_x_path, train_y_path, test_y_path, lr_c, lr
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title(f'Confusion Matrix - LR (Full Data)')
-    mlflow.log_artifact("confusion_matrix_full_data.png")
     plt.close()
 
     mlflow.sklearn.log_model(
