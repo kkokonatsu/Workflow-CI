@@ -4,9 +4,22 @@ name: PersonalityClassifierProject
 conda_env: conda.yaml
 
 entry_points:
-  train_final_lr:
-    command: 'python modelling.py --lr_c {lr_c} --lr_penalty {lr_penalty} --random_state {random_state}'
+  train_lr_model:
+    command: 'python modelling.py --train_x {train_x} --test_x {test_x} --train_y {train_y} --test_y {test_y} --lr_c {lr_c} --lr_penalty {lr_penalty} --random_state {random_state}'
     parameters:
+      train_x:
+        {
+          type: string,
+          default: 'personality_preprocessing/X_train_personality_processing.csv',
+        }
+      test_x:
+        {
+          type: string,
+          default: 'personality_preprocessing/X_test_personality_processing.csv',
+        }
+      train_y:
+        { type: string, default: 'personality_preprocessing/y_train.csv' }
+      test_y: { type: string, default: 'personality_preprocessing/y_test.csv' }
       lr_c: { type: float, default: 0.1 }
       lr_penalty: { type: string, default: 'l2' }
       random_state: { type: int, default: 42 }
