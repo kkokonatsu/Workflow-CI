@@ -1,0 +1,12 @@
+# MLProject/MLProject
+name: PersonalityClassifierProject
+
+conda_env: conda.yaml
+
+entry_points:
+  train_final_lr:
+    command: 'python modelling.py --lr_c {lr_c} --lr_penalty {lr_penalty} --random_state {random_state}'
+    parameters:
+      lr_c: { type: float, default: 0.1 }
+      lr_penalty: { type: string, default: 'l2' }
+      random_state: { type: int, default: 42 }

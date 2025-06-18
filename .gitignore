@@ -1,0 +1,11 @@
+# MLflow tracking directory
+mlruns/
+MLproject/mlruns/
+
+.DS_Store
+.env
+venv/
+__pycache__/
+*.ipynb_checkpoints
+*.pytest_cache
+*.log
