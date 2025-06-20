@@ -56,7 +56,7 @@ jobs:
 
           echo "Building Docker image..."
           mlflow models build-docker \
-            --model-uri "runs:/${RUN_ID}/logistic_regression_model" \
+            --model-uri "runs:/${RUN_ID}/model" \
             --name "$IMAGE_NAME"
 
           echo "Pushing image to Docker Hub..."
